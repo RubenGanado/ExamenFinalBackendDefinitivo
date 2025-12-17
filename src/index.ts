@@ -3,6 +3,7 @@ import { connectToMongoDB } from "./db/mongo"
 import { typeDefs } from "./graphql/schema";
 import { resolvers } from "./graphql/resolvers";
 import { getUserFromToken } from "./auth";
+//cambio de prueba
 
 const start = async () => {
   await connectToMongoDB();
