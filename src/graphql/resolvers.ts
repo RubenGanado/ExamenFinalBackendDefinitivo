@@ -65,7 +65,7 @@
       },
     },
 
-  
+  //hola
 
     Trainer: {
       pokemons: async (parent) => {

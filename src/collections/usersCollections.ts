@@ -4,7 +4,7 @@ import { COLLECTION_USERS } from "../utils";
 import { ObjectId } from "mongodb";
 
 
-
+//cambio para github
 
 
 export const createUser = async (name: string, password: string) => {
@@ -13,7 +13,7 @@ export const createUser = async (name: string, password: string) => {
     if (exists) {
         throw new Error("El usuario ya existe");
     }
-    
+
     const toEncriptao = await bcrypt.hash(password, 10);
 
     const result = await db.collection(COLLECTION_USERS).insertOne({

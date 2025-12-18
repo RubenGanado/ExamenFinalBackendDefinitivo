@@ -21,7 +21,7 @@ export const typeDefs = gql`
       GHOST
       DRAGON
     }
-
+    
   type Trainer {
     _id: ID!
     name: String!
@@ -74,3 +74,4 @@ export const typeDefs = gql`
   }
 
   `
+  //hola
