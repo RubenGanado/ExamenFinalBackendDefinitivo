@@ -1,10 +1,12 @@
 import { ObjectId } from "mongodb";
 import { getDB } from "../db/mongo";
 import { COLLECTION_PRODUCTS, COLLECTION_USERS } from "../utils";
-import { PokemonType, OwnedPokemon } from "../types";
+import { PokemonType } from "../types";
+
+const COLLECTION_OWNED_POKEMONS = "ownedPokemons";
 
 
-// --- Obtener Pokémon con paginación ---
+
 export const getPokemons = async (page?: number, size?: number) => {
   const db = getDB();
   page = page || 1;
@@ -18,7 +20,6 @@ export const getPokemons = async (page?: number, size?: number) => {
     .toArray();
 };
 
-// --- Obtener Pokémon por ID ---
 export const getPokemonById = async (id: string) => {
   const db = getDB();
   return await db
@@ -26,7 +27,6 @@ export const getPokemonById = async (id: string) => {
     .findOne({ _id: new ObjectId(id) });
 };
 
-// --- Crear Pokémon ---
 export const createPokemon = async (
   name: string,
   description: string,
@@ -43,74 +43,93 @@ export const createPokemon = async (
     types,
   });
 
-  const newPokemon = await getPokemonById(result.insertedId.toString());
-  return newPokemon;
+  return await getPokemonById(result.insertedId.toString());
 };
 
-// --- Capturar Pokémon ---
+
+
 export const catchPokemon = async (
   pokemonId: string,
   userId: string,
   nickname?: string
-): Promise<OwnedPokemon | undefined> => {
+) => {
   const db = getDB();
-  const localUserId = new ObjectId(userId);
-  const localPokemonId = new ObjectId(pokemonId);
+  const trainerId = new ObjectId(userId);
+  const pokemonObjectId = new ObjectId(pokemonId);
 
-  const pokemonToAdd = await db
+  const trainer = await db
+    .collection(COLLECTION_USERS)
+    .findOne({ _id: trainerId });
+
+  if (!trainer) throw new Error("Trainer not found");
+  if (trainer.pokemons.length >= 6)
+    throw new Error("Trainer already has 6 pokemons");
+
+  const pokemon = await db
     .collection(COLLECTION_PRODUCTS)
-    .findOne({ _id: localPokemonId });
-  if (!pokemonToAdd) throw new Error("Pokemon not found");
+    .findOne({ _id: pokemonObjectId });
 
-  // Crear objeto OwnedPokemon
-  const ownedPokemon: OwnedPokemon = {
-    _id: new ObjectId().toString(), // ID único para la relación como string
-    pokemonId: localPokemonId.toString(),
-    nickname: nickname || pokemonToAdd.name,
-    level: 1,
+  if (!pokemon) throw new Error("Pokemon not found");
+
+  const ownedPokemon = {
+    pokemon: pokemonObjectId,
+    nickname: nickname || pokemon.name,
+    attack: Math.floor(Math.random() * 100) + 1,
+    defense: Math.floor(Math.random() * 100) + 1,
+    speed: Math.floor(Math.random() * 100) + 1,
+    special: Math.floor(Math.random() * 100) + 1,
+    level: Math.floor(Math.random() * 100) + 1,
+    trainer: trainerId,
   };
 
+  const result = await db
+    .collection(COLLECTION_OWNED_POKEMONS)
+    .insertOne(ownedPokemon);
+
   await db.collection(COLLECTION_USERS).updateOne(
-    { _id: localUserId },
-    { $addToSet: { pokemons: ownedPokemon } }
+    { _id: trainerId },
+    { $push: { pokemons: result.insertedId as any} }
   );
 
-  // Devolver el OwnedPokemon recién creado
-  const updatedUser = await db
-    .collection(COLLECTION_USERS)
-    .findOne({ _id: localUserId });
-
-  return updatedUser?.pokemons.find(
-    (p: any) => p._id === ownedPokemon._id
-  );
+  return {
+    _id: result.insertedId.toString(),
+    ...ownedPokemon,
+  };
 };
 
-// --- Liberar Pokémon ---
-export const freePokemon = async (ownedPokemonId: string, userId: string): Promise<{ _id: string; name: string; pokemons: OwnedPokemon[] }> => {
+
+
+export const freePokemon = async (
+  ownedPokemonId: string,
+  userId: string
+) => {
   const db = getDB();
-  const localUserId = new ObjectId(userId);
+  const trainerId = new ObjectId(userId);
+  const ownedId = new ObjectId(ownedPokemonId);
 
-  // 1️⃣ Buscar al usuario
-  const user = await db.collection(COLLECTION_USERS).findOne({ _id: localUserId });
-  if (!user) throw new Error("User not found");
+  const ownedPokemon = await db
+    .collection(COLLECTION_OWNED_POKEMONS)
+    .findOne({ _id: ownedId, trainer: trainerId });
 
-  // 2️⃣ Filtrar el Pokémon a eliminar
-  const pokemonIndex = user.pokemons.findIndex((p: any) => p._id === ownedPokemonId);
-  if (pokemonIndex === -1) throw new Error("Owned Pokemon not found");
+  if (!ownedPokemon)
+    throw new Error("No tienes al pokemon");
 
-  // 3️⃣ Eliminar Pokémon del array
-  user.pokemons.splice(pokemonIndex, 1);
+  await db
+    .collection(COLLECTION_OWNED_POKEMONS)
+    .deleteOne({ _id: ownedId });
 
-  // 4️⃣ Actualizar usuario en DB
   await db.collection(COLLECTION_USERS).updateOne(
-    { _id: localUserId },
-    { $set: { pokemons: user.pokemons } }
+    { _id: trainerId },
+    { $pull: { pokemons: ownedId } as any}
   );
 
-  // 5️⃣ Devolver usuario completo (nombre no nulo)
+  const updatedTrainer = await db
+    .collection(COLLECTION_USERS)
+    .findOne({ _id: trainerId });
+
   return {
-    _id: user._id.toString(),
-    name: user.name || "Trainer",
-    pokemons: user.pokemons
+    _id: updatedTrainer!._id.toString(),
+    name: updatedTrainer!.name,
+    pokemons: updatedTrainer!.pokemons,
   };
 };

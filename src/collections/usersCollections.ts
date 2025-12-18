@@ -9,6 +9,11 @@ import { ObjectId } from "mongodb";
 
 export const createUser = async (name: string, password: string) => {
     const db = getDB();
+    const exists = await db.collection(COLLECTION_USERS).findOne({ name });
+    if (exists) {
+        throw new Error("El usuario ya existe");
+    }
+    
     const toEncriptao = await bcrypt.hash(password, 10);
 
     const result = await db.collection(COLLECTION_USERS).insertOne({
@@ -34,3 +39,8 @@ export const validateUser = async (name: string, password: string) => {
         pokemons: user.pokemons || []
     };
 };
+
+export const findUserById = async (id: string) => {
+    const db = getDB();
+    return await db.collection(COLLECTION_USERS).findOne({_id: new ObjectId(id)})
+}
