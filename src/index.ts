@@ -19,7 +19,7 @@ const start = async () => {
   });
 
   await server.listen({ port: 4000 });
-  console.log("GQL sirviendo y de to");
+  console.log("graphql operativo");
 };
 
 
