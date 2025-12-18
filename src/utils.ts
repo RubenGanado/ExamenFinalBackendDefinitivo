@@ -2,5 +2,5 @@
 
 
 
-export const COLLECTION_USERS = "usersClothingStore";
-export const COLLECTION_PRODUCTS = "productsClothingStore";
+export const COLLECTION_USERS = "usersPokemons";
+export const COLLECTION_PRODUCTS = "pokemonsPokedex";

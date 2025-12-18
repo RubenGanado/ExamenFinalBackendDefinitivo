@@ -1,12 +1,23 @@
+// Pokémon que un usuario posee
+export type OwnedPokemon = {
+  _id: string;          // ID único de la relación
+  pokemonId: string;    // referencia al Pokémon base
+  nickname: string;
+  level: number;
+};
 
+// Usuario con sus Pokémon capturados
+export type PokemonUser = {
+  _id: string;
+  name: string;
+  pokemons: OwnedPokemon[];
+};
 
-
-
-
-
-export type ClothingUser = {
-    _id: string;
-    email: string;
-    hola: string;
-    clothes: string[];
-}
+// Tipos de Pokémon disponibles
+export type PokemonType =
+  | "NORMAL"
+  | "GRASS"
+  | "POISON"
+  | "FIRE"
+  | "WATER"
+  | "ELECTRIC";
